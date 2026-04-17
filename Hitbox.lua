@@ -3,7 +3,7 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
-local huge = Vector3.new(1e16,1e16,1e16)
+local huge = Vector3.new(1e33, 1e33, 1e33)
 
 --================ GUI ================
 local gui = Instance.new("ScreenGui")
@@ -17,16 +17,12 @@ local function makeDraggable(obj)
 	local dragInput
 	local dragStart
 	local startPos
-	local targetPos = obj.Position
 
 	obj.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1
-		or input.UserInputType == Enum.UserInputType.Touch then
-			
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 			dragging = true
 			dragStart = input.Position
 			startPos = obj.Position
-			targetPos = obj.Position
 
 			input.Changed:Connect(function()
 				if input.UserInputState == Enum.UserInputState.End then
@@ -37,8 +33,7 @@ local function makeDraggable(obj)
 	end)
 
 	obj.InputChanged:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseMovement
-		or input.UserInputType == Enum.UserInputType.Touch then
+		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
 			dragInput = input
 		end
 	end)
@@ -46,18 +41,7 @@ local function makeDraggable(obj)
 	UserInputService.InputChanged:Connect(function(input)
 		if dragging and input == dragInput then
 			local delta = input.Position - dragStart
-			targetPos = UDim2.new(
-				startPos.X.Scale,
-				startPos.X.Offset + delta.X,
-				startPos.Y.Scale,
-				startPos.Y.Offset + delta.Y
-			)
-		end
-	end)
-
-	RunService.RenderStepped:Connect(function()
-		if dragging then
-			obj.Position = obj.Position:Lerp(targetPos,0.55) -- faster follow
+			obj.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
 		end
 	end)
 end
@@ -65,8 +49,8 @@ end
 --================ BUTTON CREATOR ================
 local function createButton(text,y,color)
 	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(0,150,0,150) -- square
-	btn.Position = UDim2.new(0,40,0,y)
+	btn.Size = UDim2.new(0,150,0,150)
+	btn.Position = UDim2.new(0.5, -75, 0, y)
 	btn.BackgroundColor3 = color
 	btn.Text = text
 	btn.TextColor3 = Color3.new(1,1,1)
@@ -80,13 +64,13 @@ local function createButton(text,y,color)
 	corner.Parent = btn
 
 	makeDraggable(btn)
-
 	return btn
 end
 
---================ BUTTONS ================
 local pulseBtn = createButton("Pulse",100,Color3.fromRGB(0,140,255))
 local tpBtn = createButton("TP",270,Color3.fromRGB(255,60,60))
+
+print("✅ Script Loaded - Smoother TP")
 
 --================ PULSE HITBOX ================
 pulseBtn.MouseButton1Click:Connect(function()
@@ -114,7 +98,7 @@ pulseBtn.MouseButton1Click:Connect(function()
 	end
 end)
 
---================ TP CLOSEST ================
+--================ IMPROVED SMOOTH TP (Faster + Smoother Tracking) ====================
 tpBtn.MouseButton1Click:Connect(function()
 	local char = player.Character
 	if not char then return end
@@ -122,7 +106,8 @@ tpBtn.MouseButton1Click:Connect(function()
 	local myRoot = char:FindFirstChild("HumanoidRootPart")
 	if not myRoot then return end
 
-	local oldPos = myRoot.CFrame
+	local oldPos = myRoot.CFrame   -- Save exact position when you pressed
+
 	local closest = nil
 	local dist = math.huge
 
@@ -147,12 +132,15 @@ tpBtn.MouseButton1Click:Connect(function()
 		if tick() - start >= 0.30 then
 			con:Disconnect()
 			myRoot.CFrame = oldPos
+			print("Returned to original position")
 			return
 		end
 
 		if closest and closest.Parent then
-			local pos = closest.Position + closest.CFrame.LookVector * 2.8
-			myRoot.CFrame = CFrame.lookAt(pos,closest.Position)
+			local targetPos = closest.Position
+			local frontPos = targetPos + closest.CFrame.LookVector * 2.8
+			-- Smoother movement
+			myRoot.CFrame = myRoot.CFrame:Lerp(CFrame.lookAt(frontPos, targetPos), 0.65)
 		end
 	end)
 end)
