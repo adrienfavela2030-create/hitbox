@@ -129,7 +129,7 @@ tpBtn.MouseButton1Click:Connect(function()
 	local start = tick()
 	local con
 	con = RunService.RenderStepped:Connect(function()
-		if tick() - start >= 0.30 then
+		if tick() - start >= 0.28 then
 			con:Disconnect()
 			myRoot.CFrame = oldPos
 			print("Returned to original position")
