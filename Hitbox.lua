@@ -3,7 +3,11 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
-local huge = Vector3.new(1e33, 1e33, 1e33)
+local huge = Vector3.new(1e16, 1e16, 1e16)
+
+local farTPEnabled = false
+local savedPosition = nil
+local platform = nil
 
 --================ GUI ================
 local gui = Instance.new("ScreenGui")
@@ -46,8 +50,8 @@ local function makeDraggable(obj)
 	end)
 end
 
---================ BUTTON CREATOR ================
-local function createButton(text,y,color)
+--================ SQUARE BUTTON CREATOR ================
+local function createButton(text, y, color)
 	local btn = Instance.new("TextButton")
 	btn.Size = UDim2.new(0,150,0,150)
 	btn.Position = UDim2.new(0.5, -75, 0, y)
@@ -67,13 +71,15 @@ local function createButton(text,y,color)
 	return btn
 end
 
-local pulseBtn = createButton("Pulse",100,Color3.fromRGB(0,140,255))
-local tpBtn = createButton("TP",270,Color3.fromRGB(255,60,60))
+local pulseBtn = createButton("Pulse", 80, Color3.fromRGB(0,140,255))
+local tpBtn = createButton("TP", 250, Color3.fromRGB(255,60,60))
+local farBtn = createButton("Far TP OFF", 420, Color3.fromRGB(100,50,255))
 
-print("✅ Script Loaded - Smoother TP")
+print("✅ Script Loaded - TP & Far TP Fixed")
 
 --================ PULSE HITBOX ================
 pulseBtn.MouseButton1Click:Connect(function()
+	print("Pulse Hitbox Activated!")
 	for _,plr in Players:GetPlayers() do
 		if plr ~= player and plr.Character then
 			local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
@@ -84,9 +90,7 @@ pulseBtn.MouseButton1Click:Connect(function()
 			end
 		end
 	end
-
 	task.wait(0.18)
-
 	for _,plr in Players:GetPlayers() do
 		if plr ~= player and plr.Character then
 			local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
@@ -98,49 +102,49 @@ pulseBtn.MouseButton1Click:Connect(function()
 	end
 end)
 
---================ IMPROVED SMOOTH TP (Faster + Smoother Tracking) ====================
-tpBtn.MouseButton1Click:Connect(function()
-	local char = player.Character
-	if not char then return end
-	
-	local myRoot = char:FindFirstChild("HumanoidRootPart")
+--================ NORMAL TP (0.49s + Return) ====================
+tpBtn.MouseButton1Click:Connect(function() local char = player.Character if not char then return end local myRoot = char:FindFirstChild("HumanoidRootPart") if not myRoot then return end local oldPos = myRoot.CFrame -- 
+		Save exact position when you pressed local closest = nil local dist = math.huge for _,plr in Players:GetPlayers() do if plr ~= player and plr.Character then local hrp = plr.Character:FindFirstChild("HumanoidRootPart") if hrp then local d = (myRoot.Position - hrp.Position).Magnitude if d < dist and d > 8 then dist = d closest = hrp end end end end if not closest then return end local start = tick() local con con = RunService.RenderStepped:Connect(function() if tick() - start >= 0.28 then con:Disconnect() myRoot.CFrame = oldPos print("Returned to original position") return end if closest and closest.Parent then local targetPos = closest.Position local frontPos = targetPos + closest.CFrame.LookVector * 2.8 -- 
+					Smoother movement myRoot.CFrame = myRoot.CFrame:Lerp(CFrame.lookAt(frontPos, targetPos), 0.65) end end) end)
+
+--================ FAR TP (10 Million Studs + Platform) ====================
+farBtn.MouseButton1Click:Connect(function()
+	local myRoot = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
 	if not myRoot then return end
 
-	local oldPos = myRoot.CFrame   -- Save exact position when you pressed
-
-	local closest = nil
-	local dist = math.huge
-
-	for _,plr in Players:GetPlayers() do
-		if plr ~= player and plr.Character then
-			local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
-			if hrp then
-				local d = (myRoot.Position - hrp.Position).Magnitude
-				if d < dist and d > 8 then
-					dist = d
-					closest = hrp
-				end
-			end
+	if not farTPEnabled then
+		savedPosition = myRoot.CFrame
+		
+		local farX = myRoot.Position.X + 10000000
+		local farZ = myRoot.Position.Z + 10000000
+		local farY = myRoot.Position.Y + 200
+		
+		myRoot.CFrame = CFrame.new(farX, farY, farZ)
+		
+		-- Spawn visible platform
+		platform = Instance.new("Part")
+		platform.Size = Vector3.new(200, 10, 200)
+		platform.Position = myRoot.Position - Vector3.new(0, 8, 0)
+		platform.Anchored = true
+		platform.CanCollide = true
+		platform.Transparency = 0.3
+		platform.BrickColor = BrickColor.new("Bright blue")
+		platform.Parent = workspace
+		
+		farTPEnabled = true
+		farBtn.Text = "Far TP ON"
+		farBtn.BackgroundColor3 = Color3.fromRGB(0,255,100)
+	else
+		if savedPosition then
+			myRoot.CFrame = savedPosition
 		end
+		if platform then
+			platform:Destroy()
+			platform = nil
+		end
+		
+		farTPEnabled = false
+		farBtn.Text = "Far TP OFF"
+		farBtn.BackgroundColor3 = Color3.fromRGB(100,50,255)
 	end
-
-	if not closest then return end
-
-	local start = tick()
-	local con
-	con = RunService.RenderStepped:Connect(function()
-		if tick() - start >= 0.28 then
-			con:Disconnect()
-			myRoot.CFrame = oldPos
-			print("Returned to original position")
-			return
-		end
-
-		if closest and closest.Parent then
-			local targetPos = closest.Position
-			local frontPos = targetPos + closest.CFrame.LookVector * 2.8
-			-- Smoother movement
-			myRoot.CFrame = myRoot.CFrame:Lerp(CFrame.lookAt(frontPos, targetPos), 0.65)
-		end
-	end)
 end)
