@@ -10,6 +10,8 @@ local savedPosition = nil
 local platform = nil
 local infJump = false
 
+local buttons = {}
+
 --================ GUI =================
 local gui = Instance.new("ScreenGui")
 gui.Name = "AdrienHub"
@@ -28,10 +30,22 @@ title.Font = Enum.Font.GothamBold
 title.TextSize = 18
 title.Parent = gui
 
-local tc = Instance.new("UICorner",title)
-tc.CornerRadius = UDim.new(0,10)
+Instance.new("UICorner", title).CornerRadius = UDim.new(0,10)
 
---================ DRAG BUTTONS =================
+--================ REFRESH BUTTON =================
+local refreshBtn = Instance.new("TextButton")
+refreshBtn.Size = UDim2.new(0,35,0,30)
+refreshBtn.Position = UDim2.new(0,185,0,10)
+refreshBtn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+refreshBtn.Text = "⟳"
+refreshBtn.TextColor3 = Color3.fromRGB(255,255,255)
+refreshBtn.Font = Enum.Font.GothamBold
+refreshBtn.TextSize = 18
+refreshBtn.Parent = gui
+
+Instance.new("UICorner", refreshBtn).CornerRadius = UDim.new(0,8)
+
+--================ DRAG =================
 local function makeDraggable(btn)
 	local dragging = false
 	local dragStart
@@ -79,6 +93,7 @@ local function makeDraggable(btn)
 	end
 end
 
+--================ CREATE BUTTON =================
 local function createButton(text,posY,color)
 	local btn = Instance.new("TextButton")
 	btn.Size = UDim2.new(0,110,0,44)
@@ -89,158 +104,134 @@ local function createButton(text,posY,color)
 	btn.TextSize = 17
 	btn.Font = Enum.Font.GothamBold
 	btn.BorderSizePixel = 0
-	btn.AutoButtonColor = true
 	btn.Parent = gui
 
-	local c = Instance.new("UICorner",btn)
-	c.CornerRadius = UDim.new(0,12)
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0,12)
 
-	local s = Instance.new("UIStroke",btn)
-	s.Thickness = 1.5
-	s.Color = Color3.fromRGB(255,255,255)
+	local dragCheck = makeDraggable(btn)
 
-	return btn, makeDraggable(btn)
+	table.insert(buttons, btn)
+
+	return btn, dragCheck
 end
 
-local pulseBtn,pulseDrag = createButton("PULSE",50,Color3.fromRGB(0,145,255))
-local tpBtn,tpDrag       = createButton("TP",102,Color3.fromRGB(255,75,75))
-local farBtn,farDrag     = createButton("FAR TP",154,Color3.fromRGB(130,70,255))
-local jumpBtn,jumpDrag   = createButton("INF JUMP",206,Color3.fromRGB(0,220,120))
+--================ BUILD UI =================
+local function buildUI()
 
---================ PULSE =================
-pulseBtn.MouseButton1Click:Connect(function()
-	if pulseDrag() then return end
-
-	for _,plr in Players:GetPlayers() do
-		if plr ~= player and plr.Character then
-			local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
-			if hrp then
-				hrp.Size = huge
-				hrp.Transparency = 0.35
-				hrp.CanCollide = false
-			end
-		end
+	for _,b in ipairs(buttons) do
+		if b then b:Destroy() end
 	end
+	buttons = {}
 
-	task.wait(0.18)
+	local pulseBtn,pulseDrag = createButton("PULSE",50,Color3.fromRGB(0,145,255))
+	local tpBtn,tpDrag       = createButton("TP",102,Color3.fromRGB(255,75,75))
+	local farBtn,farDrag     = createButton("FAR TP",154,Color3.fromRGB(130,70,255))
+	local jumpBtn,jumpDrag   = createButton("INF JUMP",206,Color3.fromRGB(0,220,120))
 
-	for _,plr in Players:GetPlayers() do
-		if plr ~= player and plr.Character then
-			local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
-			if hrp then
-				hrp.Size = Vector3.new(2,2,1)
-				hrp.Transparency = 1
-			end
-		end
-	end
-end)
+	--================ PULSE =================
+	pulseBtn.MouseButton1Click:Connect(function()
+		if pulseDrag() then return end
 
---================ TP =================
-tpBtn.MouseButton1Click:Connect(function()
-	if tpDrag() then return end
-
-	local char = player.Character
-	if not char then return end
-	local myRoot = char:FindFirstChild("HumanoidRootPart")
-	if not myRoot then return end
-
-	local oldPos = myRoot.CFrame
-	local closest = nil
-	local dist = math.huge
-
-	for _,plr in Players:GetPlayers() do
-		if plr ~= player and plr.Character then
-			local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
-			if hrp then
-				local d = (myRoot.Position - hrp.Position).Magnitude
-				if d < dist and d > 8 then
-					dist = d
-					closest = hrp
+		for _,plr in Players:GetPlayers() do
+			if plr ~= player and plr.Character then
+				local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+				if hrp then
+					hrp.Size = huge
+					hrp.Transparency = 0.35
+					hrp.CanCollide = false
 				end
 			end
 		end
-	end
-
-	if not closest then return end
-
-	local start = tick()
-	local con
-	con = RunService.RenderStepped:Connect(function()
-		if tick() - start >= 0.28 then
-			con:Disconnect()
-			myRoot.CFrame = oldPos
-			return
-		end
-
-		if closest and closest.Parent then
-			local targetPos = closest.Position
-			local frontPos = targetPos + closest.CFrame.LookVector * 2.8
-			myRoot.CFrame = myRoot.CFrame:Lerp(CFrame.lookAt(frontPos,targetPos),0.65)
-		end
 	end)
-end)
 
---================ FAR TP =================
-farBtn.MouseButton1Click:Connect(function()
-	if farDrag() then return end
+	--================ TP =================
+	tpBtn.MouseButton1Click:Connect(function()
+		if tpDrag() then return end
 
-	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-	if not root then return end
-
-	if not farTPEnabled then
-		savedPosition = root.CFrame
-
-		root.CFrame = CFrame.new(
-			root.Position.X + 10000000,
-			root.Position.Y + 200,
-			root.Position.Z + 10000000
-		)
-
-		platform = Instance.new("Part")
-		platform.Size = Vector3.new(200,10,200)
-		platform.Position = root.Position - Vector3.new(0,8,0)
-		platform.Anchored = true
-		platform.CanCollide = true
-		platform.Transparency = 0.25
-		platform.Material = Enum.Material.Neon
-		platform.Color = Color3.fromRGB(0,170,255)
-		platform.Parent = workspace
-
-		farTPEnabled = true
-		farBtn.Text = "RETURN"
-	else
-		root.CFrame = savedPosition
-		if platform then platform:Destroy() end
-		farTPEnabled = false
-		farBtn.Text = "FAR TP"
-	end
-end)
-
---================ INF JUMP =================
-jumpBtn.MouseButton1Click:Connect(function()
-	if jumpDrag() then return end
-
-	infJump = not infJump
-
-	if infJump then
-		jumpBtn.Text = "JUMP ON"
-		jumpBtn.BackgroundColor3 = Color3.fromRGB(0,255,130)
-	else
-		jumpBtn.Text = "INF JUMP"
-		jumpBtn.BackgroundColor3 = Color3.fromRGB(0,220,120)
-	end
-end)
-
-UIS.JumpRequest:Connect(function()
-	if infJump then
 		local char = player.Character
-		if char then
-			local hum = char:FindFirstChildOfClass("Humanoid")
-			if hum then
-				hum:ChangeState(Enum.HumanoidStateType.Jumping)
+		if not char then return end
+		local myRoot = char:FindFirstChild("HumanoidRootPart")
+		if not myRoot then return end
+
+		local oldPos = myRoot.CFrame
+		local closest, dist = nil, math.huge
+
+		for _,plr in Players:GetPlayers() do
+			if plr ~= player and plr.Character then
+				local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+				if hrp then
+					local d = (myRoot.Position - hrp.Position).Magnitude
+					if d < dist and d > 8 then
+						dist = d
+						closest = hrp
+					end
+				end
 			end
 		end
-	end
+
+		if not closest then return end
+
+		local start = tick()
+		local con
+		con = RunService.RenderStepped:Connect(function()
+			if tick() - start >= 0.28 then
+				con:Disconnect()
+				myRoot.CFrame = oldPos
+				return
+			end
+
+			if closest and closest.Parent then
+				local front = closest.Position + closest.CFrame.LookVector * 2.8
+				myRoot.CFrame = myRoot.CFrame:Lerp(CFrame.lookAt(front, closest.Position), 0.65)
+			end
+		end)
+	end)
+
+	--================ FAR TP =================
+	farBtn.MouseButton1Click:Connect(function()
+		if farDrag() then return end
+
+		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		if not root then return end
+
+		if not farTPEnabled then
+			savedPosition = root.CFrame
+			root.CFrame = CFrame.new(root.Position + Vector3.new(10000000,200,10000000))
+			farTPEnabled = true
+			farBtn.Text = "RETURN"
+		else
+			root.CFrame = savedPosition
+			farTPEnabled = false
+			farBtn.Text = "FAR TP"
+		end
+	end)
+
+	--================ INF JUMP =================
+	jumpBtn.MouseButton1Click:Connect(function()
+		if jumpDrag() then return end
+		infJump = not infJump
+		jumpBtn.Text = infJump and "JUMP ON" or "INF JUMP"
+	end)
+
+	UIS.JumpRequest:Connect(function()
+		if infJump then
+			local char = player.Character
+			if char then
+				local hum = char:FindFirstChildOfClass("Humanoid")
+				if hum then
+					hum:ChangeState(Enum.HumanoidStateType.Jumping)
+				end
+			end
+		end
+	end)
+end
+
+-- FIRST BUILD
+buildUI()
+
+--================ REFRESH =================
+refreshBtn.MouseButton1Click:Connect(function()
+	buildUI()
 end)
 --[[
 	WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk!
