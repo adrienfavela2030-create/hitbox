@@ -1,51 +1,71 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
+local UIS = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
-local huge = Vector3.new(1e16, 1e16, 1e16)
+local huge = Vector3.new(1e16,1e16,1e16)
 
 local farTPEnabled = false
 local savedPosition = nil
 local platform = nil
+local infJump = false
 
---================ GUI ================
+--================ GUI =================
 local gui = Instance.new("ScreenGui")
-gui.Name = "AdrienScript"
+gui.Name = "AdrienHub"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
---================ DRAG SYSTEM ================
-local function makeDraggable(obj)
+--================ TITLE =================
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(0,170,0,30)
+title.Position = UDim2.new(0,10,0,10)
+title.BackgroundTransparency = 0.35
+title.BackgroundColor3 = Color3.fromRGB(0,0,0)
+title.Text = "Adrien's bomb"
+title.TextColor3 = Color3.fromRGB(255,255,255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.Parent = gui
+
+local tc = Instance.new("UICorner",title)
+tc.CornerRadius = UDim.new(0,10)
+
+--================ DRAG BUTTONS =================
+local function makeDraggable(btn)
 	local dragging = false
-	local dragInput
 	local dragStart
 	local startPos
+	local moved = false
 
-	obj.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+	btn.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
 			dragging = true
+			moved = false
 			dragStart = input.Position
-			startPos = obj.Position
-
-			input.Changed:Connect(function()
-				if input.UserInputState == Enum.UserInputState.End then
-					dragging = false
-				end
-			end)
+			startPos = btn.Position
 		end
 	end)
 
-	obj.InputChanged:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-			dragInput = input
+	UIS.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = false
 		end
 	end)
 
-	UserInputService.InputChanged:Connect(function(input)
-		if dragging and input == dragInput then
+	UIS.InputChanged:Connect(function(input)
+		if dragging and (
+			input.UserInputType == Enum.UserInputType.MouseMovement
+			or input.UserInputType == Enum.UserInputType.Touch
+		) then
 			local delta = input.Position - dragStart
-			obj.Position = UDim2.new(
+			if math.abs(delta.X) > 5 or math.abs(delta.Y) > 5 then
+				moved = true
+			end
+
+			btn.Position = UDim2.new(
 				startPos.X.Scale,
 				startPos.X.Offset + delta.X,
 				startPos.Y.Scale,
@@ -53,37 +73,44 @@ local function makeDraggable(obj)
 			)
 		end
 	end)
+
+	return function()
+		return moved
+	end
 end
 
---================ BUTTON CREATOR ================
-local function createButton(text, y, color)
+local function createButton(text,posY,color)
 	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(0,150,0,150)
-	btn.Position = UDim2.new(0.5,-75,0,y)
+	btn.Size = UDim2.new(0,110,0,44)
+	btn.Position = UDim2.new(0,10,0,posY)
 	btn.BackgroundColor3 = color
 	btn.Text = text
-	btn.TextColor3 = Color3.new(1,1,1)
+	btn.TextColor3 = Color3.fromRGB(255,255,255)
+	btn.TextSize = 17
 	btn.Font = Enum.Font.GothamBold
-	btn.TextScaled = true
-	btn.Parent = gui
 	btn.BorderSizePixel = 0
+	btn.AutoButtonColor = true
+	btn.Parent = gui
 
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0,12)
-	corner.Parent = btn
+	local c = Instance.new("UICorner",btn)
+	c.CornerRadius = UDim.new(0,12)
 
-	makeDraggable(btn)
-	return btn
+	local s = Instance.new("UIStroke",btn)
+	s.Thickness = 1.5
+	s.Color = Color3.fromRGB(255,255,255)
+
+	return btn, makeDraggable(btn)
 end
 
-local pulseBtn = createButton("Pulse",80,Color3.fromRGB(0,140,255))
-local tpBtn = createButton("TP",250,Color3.fromRGB(255,60,60))
-local farBtn = createButton("Far TP OFF",420,Color3.fromRGB(100,50,255))
+local pulseBtn,pulseDrag = createButton("PULSE",50,Color3.fromRGB(0,145,255))
+local tpBtn,tpDrag       = createButton("TP",102,Color3.fromRGB(255,75,75))
+local farBtn,farDrag     = createButton("FAR TP",154,Color3.fromRGB(130,70,255))
+local jumpBtn,jumpDrag   = createButton("INF JUMP",206,Color3.fromRGB(0,220,120))
 
-print("✅ Script Loaded")
-
---================ PULSE HITBOX ================
+--================ PULSE =================
 pulseBtn.MouseButton1Click:Connect(function()
+	if pulseDrag() then return end
+
 	for _,plr in Players:GetPlayers() do
 		if plr ~= player and plr.Character then
 			local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
@@ -108,11 +135,12 @@ pulseBtn.MouseButton1Click:Connect(function()
 	end
 end)
 
---================ NEW TP SYSTEM ====================
+--================ TP =================
 tpBtn.MouseButton1Click:Connect(function()
+	if tpDrag() then return end
+
 	local char = player.Character
 	if not char then return end
-
 	local myRoot = char:FindFirstChild("HumanoidRootPart")
 	if not myRoot then return end
 
@@ -137,64 +165,80 @@ tpBtn.MouseButton1Click:Connect(function()
 
 	local start = tick()
 	local con
-
 	con = RunService.RenderStepped:Connect(function()
-		if tick() - start >= 0.15 then
+		if tick() - start >= 0.28 then
 			con:Disconnect()
 			myRoot.CFrame = oldPos
-			print("Returned to original position")
 			return
 		end
 
 		if closest and closest.Parent then
 			local targetPos = closest.Position
 			local frontPos = targetPos + closest.CFrame.LookVector * 2.8
-			myRoot.CFrame = myRoot.CFrame:Lerp(
-				CFrame.lookAt(frontPos, targetPos),
-				0.65
-			)
+			myRoot.CFrame = myRoot.CFrame:Lerp(CFrame.lookAt(frontPos,targetPos),0.65)
 		end
 	end)
 end)
 
---================ FAR TP ====================
+--================ FAR TP =================
 farBtn.MouseButton1Click:Connect(function()
-	local myRoot = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-	if not myRoot then return end
+	if farDrag() then return end
+
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if not root then return end
 
 	if not farTPEnabled then
-		savedPosition = myRoot.CFrame
+		savedPosition = root.CFrame
 
-		local farX = myRoot.Position.X + 10000000
-		local farZ = myRoot.Position.Z + 10000000
-		local farY = myRoot.Position.Y + 200
-
-		myRoot.CFrame = CFrame.new(farX, farY, farZ)
+		root.CFrame = CFrame.new(
+			root.Position.X + 10000000,
+			root.Position.Y + 200,
+			root.Position.Z + 10000000
+		)
 
 		platform = Instance.new("Part")
 		platform.Size = Vector3.new(200,10,200)
-		platform.Position = myRoot.Position - Vector3.new(0,8,0)
+		platform.Position = root.Position - Vector3.new(0,8,0)
 		platform.Anchored = true
 		platform.CanCollide = true
-		platform.Transparency = 0.3
-		platform.BrickColor = BrickColor.new("Bright blue")
+		platform.Transparency = 0.25
+		platform.Material = Enum.Material.Neon
+		platform.Color = Color3.fromRGB(0,170,255)
 		platform.Parent = workspace
 
 		farTPEnabled = true
-		farBtn.Text = "Far TP ON"
-		farBtn.BackgroundColor3 = Color3.fromRGB(0,255,100)
+		farBtn.Text = "RETURN"
 	else
-		if savedPosition then
-			myRoot.CFrame = savedPosition
-		end
-
-		if platform then
-			platform:Destroy()
-			platform = nil
-		end
-
+		root.CFrame = savedPosition
+		if platform then platform:Destroy() end
 		farTPEnabled = false
-		farBtn.Text = "Far TP OFF"
-		farBtn.BackgroundColor3 = Color3.fromRGB(100,50,255)
+		farBtn.Text = "FAR TP"
+	end
+end)
+
+--================ INF JUMP =================
+jumpBtn.MouseButton1Click:Connect(function()
+	if jumpDrag() then return end
+
+	infJump = not infJump
+
+	if infJump then
+		jumpBtn.Text = "JUMP ON"
+		jumpBtn.BackgroundColor3 = Color3.fromRGB(0,255,130)
+	else
+		jumpBtn.Text = "INF JUMP"
+		jumpBtn.BackgroundColor3 = Color3.fromRGB(0,220,120)
+	end
+end)
+
+UIS.JumpRequest:Connect(function()
+	if infJump then
+		local char = player.Character
+		if char then
+			local hum = char:FindFirstChildOfClass("Humanoid")
+			if hum then
+				hum:ChangeState(Enum.HumanoidStateType.Jumping)
+			end
+		end
 	end
 end)
