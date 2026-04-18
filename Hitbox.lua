@@ -20,7 +20,7 @@ gui.Parent = player:WaitForChild("PlayerGui")
 
 --================ TITLE =================
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(0,170,0,30)
+title.Size = UDim2.new(0,190,0,30)
 title.Position = UDim2.new(0,10,0,10)
 title.BackgroundTransparency = 0.35
 title.BackgroundColor3 = Color3.fromRGB(0,0,0)
@@ -28,16 +28,17 @@ title.Text = "Adrien's Scirpt's"
 title.TextColor3 = Color3.fromRGB(255,255,255)
 title.Font = Enum.Font.GothamBold
 title.TextSize = 18
+title.TextXAlignment = Enum.TextXAlignment.Left
 title.Parent = gui
 
 Instance.new("UICorner", title).CornerRadius = UDim.new(0,10)
 
---================ REFRESH BUTTON =================
+--================ REFRESH BUTTON (RIGHT SIDE OF TITLE) =================
 local refreshBtn = Instance.new("TextButton")
-refreshBtn.Size = UDim2.new(0,35,0,30)
-refreshBtn.Position = UDim2.new(0,185,0,10)
-refreshBtn.BackgroundColor3 = Color3.fromRGB(40,40,40)
-refreshBtn.Text = "⟳"
+refreshBtn.Size = UDim2.new(0,30,0,30)
+refreshBtn.Position = UDim2.new(0,175,0,10)
+refreshBtn.BackgroundColor3 = Color3.fromRGB(35,35,35)
+refreshBtn.Text = "🔄"
 refreshBtn.TextColor3 = Color3.fromRGB(255,255,255)
 refreshBtn.Font = Enum.Font.GothamBold
 refreshBtn.TextSize = 18
@@ -45,7 +46,7 @@ refreshBtn.Parent = gui
 
 Instance.new("UICorner", refreshBtn).CornerRadius = UDim.new(0,8)
 
---================ DRAG =================
+--================ DRAG SYSTEM =================
 local function makeDraggable(btn)
 	local dragging = false
 	local dragStart
@@ -93,7 +94,7 @@ local function makeDraggable(btn)
 	end
 end
 
---================ CREATE BUTTON =================
+--================ BUTTON CREATOR =================
 local function createButton(text,posY,color)
 	local btn = Instance.new("TextButton")
 	btn.Size = UDim2.new(0,110,0,44)
@@ -209,6 +210,7 @@ local function buildUI()
 	--================ INF JUMP =================
 	jumpBtn.MouseButton1Click:Connect(function()
 		if jumpDrag() then return end
+
 		infJump = not infJump
 		jumpBtn.Text = infJump and "JUMP ON" or "INF JUMP"
 	end)
@@ -229,18 +231,7 @@ end
 -- FIRST BUILD
 buildUI()
 
---================ REFRESH =================
+--================ REFRESH BUTTON =================
 refreshBtn.MouseButton1Click:Connect(function()
 	buildUI()
 end)
---[[
-	WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk!
-]]
---// Fly
---// Adjust the keybinds to your liking.
-loadstring(game:HttpGet("https://raw.githubusercontent.com/TheRealXORA/Roblox/refs/heads/Main/Scripts%20/Universal%20/Fly.luau", true))()
-Fly.Keybinds.Fly = "F" or "ButtonA"
-Fly.Keybinds.Hide = "H" or "ButtonB"
-Fly.Keybinds.Remove = "R" or "ButtonC" 
-Fly.NoGravity = true
-Fly.FaceCamera = true
