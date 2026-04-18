@@ -242,3 +242,14 @@ UIS.JumpRequest:Connect(function()
 		end
 	end
 end)
+--[[
+	WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk!
+]]
+--// Fly
+--// Adjust the keybinds to your liking.
+loadstring(game:HttpGet("https://raw.githubusercontent.com/TheRealXORA/Roblox/refs/heads/Main/Scripts%20/Universal%20/Fly.luau", true))()
+Fly.Keybinds.Fly = "F" or "ButtonA"
+Fly.Keybinds.Hide = "H" or "ButtonB"
+Fly.Keybinds.Remove = "R" or "ButtonC" 
+Fly.NoGravity = true
+Fly.FaceCamera = true
