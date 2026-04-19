@@ -12,22 +12,55 @@ local farPlatform = nil
 local infJump = false
 local buttons = {}
 
--- Identification tag so "Bring" only works on other script users
+-- Identification tag (Handshake) so script users can find each other
 if not player:FindFirstChild("AdrienHub_Active") then
-    local tag = Instance.new("BoolValue", player)
+    local tag = Instance.new("BoolValue")
     tag.Name = "AdrienHub_Active"
+    tag.Value = true
+    tag.Parent = player
 end
 
 --================ GUI =================
 local gui = Instance.new("ScreenGui")
-gui.Name = "AdrienHub"
+gui.Name = "AdrienHub_v38"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
+--================ TITLE & CREDITS =================
+local titleFrame = Instance.new("Frame")
+titleFrame.Size = UDim2.new(0, 210, 0, 50)
+titleFrame.Position = UDim2.new(0, 10, 0, 10)
+titleFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+titleFrame.BackgroundTransparency = 0.3
+titleFrame.Parent = gui
+Instance.new("UICorner", titleFrame)
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -10, 0, 25)
+title.Position = UDim2.new(0, 10, 0, 5)
+title.BackgroundTransparency = 1
+title.Text = "Adrien's Scripts"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = titleFrame
+
+local credits = Instance.new("TextLabel")
+credits.Size = UDim2.new(1, -10, 0, 15)
+credits.Position = UDim2.new(0, 10, 0, 28)
+credits.BackgroundTransparency = 1
+credits.Text = "Credits: Adrien & Gemini"
+credits.TextColor3 = Color3.fromRGB(200, 200, 200)
+credits.Font = Enum.Font.GothamItalic
+credits.TextSize = 12
+credits.TextXAlignment = Enum.TextXAlignment.Left
+credits.Parent = titleFrame
+
 --================ ADMIN PANEL =================
 local adminPanel = Instance.new("Frame")
-adminPanel.Size = UDim2.new(0, 200, 0, 180)
-adminPanel.Position = UDim2.new(0.5, -100, 0.4, 0)
+adminPanel.Size = UDim2.new(0, 220, 0, 180)
+adminPanel.Position = UDim2.new(0.5, -110, 0.4, 0)
 adminPanel.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 adminPanel.Visible = false
 adminPanel.Parent = gui
@@ -36,8 +69,8 @@ Instance.new("UIStroke", adminPanel).Color = Color3.new(1, 1, 1)
 
 local function createAdminBtn(text, y, callback)
     local b = Instance.new("TextButton", adminPanel)
-    b.Size = UDim2.new(0, 170, 0, 40)
-    b.Position = UDim2.new(0.5, -85, 0, y)
+    b.Size = UDim2.new(0, 190, 0, 40)
+    b.Position = UDim2.new(0.5, -95, 0, y)
     b.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     b.Text = text
     b.TextColor3 = Color3.new(1, 1, 1)
@@ -46,35 +79,41 @@ local function createAdminBtn(text, y, callback)
     b.MouseButton1Click:Connect(callback)
 end
 
+-- FIXED BRING SYSTEM
 createAdminBtn("BRING SCRIPT USERS", 40, function()
     local myRoot = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
     if not myRoot then return end
+    
+    local foundUsers = 0
     for _, p in pairs(Players:GetPlayers()) do
-        -- Only brings people who have the "AdrienHub_Active" tag
+        -- Searches for the tag created at the top of the script
         if p ~= player and p:FindFirstChild("AdrienHub_Active") and p.Character then
-            p.Character:MoveTo(myRoot.Position + Vector3.new(math.random(-5, 5), 0, math.random(-5, 5)))
+            local targetRoot = p.Character:FindFirstChild("HumanoidRootPart")
+            if targetRoot then
+                targetRoot.CFrame = myRoot.CFrame * CFrame.new(math.random(-3, 3), 0, math.random(-3, 3))
+                foundUsers = foundUsers + 1
+            end
         end
     end
 end)
 
 createAdminBtn("CLOSE PANEL", 110, function() adminPanel.Visible = false end)
 
--- Crown Toggle (Bottom Right)
+-- Crown Toggle
 local crown = Instance.new("TextButton", gui)
 crown.Size = UDim2.new(0, 50, 0, 50)
 crown.Position = UDim2.new(1, -70, 1, -70)
 crown.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 crown.Text = "👑"
 crown.TextSize = 25
+crown.Parent = gui
 Instance.new("UICorner", crown)
 
 crown.MouseButton1Click:Connect(function() adminPanel.Visible = not adminPanel.Visible end)
-player.Chatted:Connect(function(msg) if msg:lower() == "/panel" then adminPanel.Visible = not adminPanel.Visible end end)
 
 --================ DRAG SYSTEM =================
-local function makeDraggable(btn)
-	local dragging = false
-	local dragInput, dragStart, startPos
+local function makeDraggable(btn, callback)
+	local dragging, dragInput, dragStart, startPos
 	local hasMoved = false
 
 	btn.InputBegan:Connect(function(input)
@@ -85,30 +124,32 @@ local function makeDraggable(btn)
 		end
 	end)
 
-	btn.InputChanged:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
-	end)
-
 	UIS.InputChanged:Connect(function(input)
-		if input == dragInput and dragging then
+		if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
 			local delta = input.Position - dragStart
-			if math.abs(delta.X) > 3 or math.abs(delta.Y) > 3 then hasMoved = true end
+			if delta.Magnitude > 5 then hasMoved = true end
 			btn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
 		end
 	end)
-	return function() return hasMoved end
+    return function() return hasMoved end
 end
 
+makeDraggable(adminPanel)
+
 --================ BUTTON CREATOR =================
-local function createButton(text, posY, color)
+local function createButton(text, posY, color, action)
 	local btn = Instance.new("TextButton")
 	btn.Size = UDim2.new(0, 110, 0, 44); btn.Position = UDim2.new(0, 10, 0, posY)
 	btn.BackgroundColor3 = color; btn.Text = text; btn.TextColor3 = Color3.new(1, 1, 1)
 	btn.TextSize = 17; btn.Font = Enum.Font.GothamBold; btn.Parent = gui
 	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 12)
 	local dragCheck = makeDraggable(btn)
+    
+    btn.MouseButton1Click:Connect(function()
+        if not dragCheck() then action() end
+    end)
 	table.insert(buttons, btn)
-	return btn, dragCheck
+	return btn
 end
 
 --================ BUILD UI =================
@@ -116,18 +157,11 @@ local function buildUI()
 	for _, b in ipairs(buttons) do if b then b:Destroy() end end
 	buttons = {}
 	
-	local pulseBtn, pulseDrag = createButton("PULSE", 50, Color3.fromRGB(0, 145, 255))
-	local tpBtn, tpDrag       = createButton("TP", 102, Color3.fromRGB(255, 75, 75))
-	local farBtn, farDrag     = createButton(farTPEnabled and "RETURN" or "FAR TP", 154, Color3.fromRGB(130, 70, 255))
-	local jumpBtn, jumpDrag   = createButton(infJump and "JUMP ON" or "INF JUMP", 206, Color3.fromRGB(0, 220, 120))
-
-	pulseBtn.MouseButton1Click:Connect(function()
-		if pulseDrag() then return end
-		local duration = 0.10
+	createButton("PULSE", 70, Color3.fromRGB(0, 145, 255), function()
 		local startTime = tick()
 		local connection
 		connection = RunService.Heartbeat:Connect(function()
-			if tick() - startTime >= duration then
+			if tick() - startTime >= 0.10 then
 				connection:Disconnect()
 				for _, plr in ipairs(Players:GetPlayers()) do
 					if plr ~= player and plr.Character then
@@ -146,8 +180,7 @@ local function buildUI()
 		end)
 	end)
 
-	tpBtn.MouseButton1Click:Connect(function()
-		if tpDrag() then return end
+	createButton("TP", 122, Color3.fromRGB(255, 75, 75), function()
 		local char = player.Character
 		local myRoot = char and char:FindFirstChild("HumanoidRootPart")
 		if not myRoot then return end
@@ -172,8 +205,7 @@ local function buildUI()
 		end)
 	end)
 
-	farBtn.MouseButton1Click:Connect(function()
-		if farDrag() then return end
+	createButton(farTPEnabled and "RETURN" or "FAR TP", 174, Color3.fromRGB(130, 70, 255), function()
 		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
 		if not root then return end
 		if not farTPEnabled then
@@ -181,16 +213,15 @@ local function buildUI()
 			farPlatform = Instance.new("Part", workspace)
 			farPlatform.Size = Vector3.new(3000, 10, 3000); farPlatform.Position = farLocation - Vector3.new(0, 10, 0)
 			farPlatform.Anchored = true; farPlatform.Material = Enum.Material.Neon; farPlatform.Color = Color3.fromRGB(0, 255, 255)
-			root.CFrame = CFrame.new(farLocation); farTPEnabled = true; farBtn.Text = "RETURN"
+			root.CFrame = CFrame.new(farLocation); farTPEnabled = true; buildUI()
 		else
 			root.CFrame = savedPosition; if farPlatform then farPlatform:Destroy() end
-			farTPEnabled = false; farBtn.Text = "FAR TP"
+			farTPEnabled = false; buildUI()
 		end
 	end)
 
-	jumpBtn.MouseButton1Click:Connect(function()
-		if jumpDrag() then return end
-		infJump = not infJump; jumpBtn.Text = infJump and "JUMP ON" or "INF JUMP"
+	createButton(infJump and "JUMP ON" or "INF JUMP", 226, Color3.fromRGB(0, 220, 120), function()
+		infJump = not infJump; buildUI()
 	end)
 end
 
@@ -202,7 +233,3 @@ UIS.JumpRequest:Connect(function()
 end)
 
 buildUI()
--- Create Refresh and Title properly
-local titleLabel = title
-local refresh = refreshBtn
-refresh.MouseButton1Click:Connect(buildUI)
