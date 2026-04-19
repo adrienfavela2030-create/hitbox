@@ -3,7 +3,7 @@ local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
-local huge = Vector3.new(1e16, 1e16, 1e16)
+local huge = Vector3.new(2e11, 2e11, 2e11)
 local farLocation = Vector3.new(1000000000, 500, 1000000000)
 
 local farTPEnabled = false
